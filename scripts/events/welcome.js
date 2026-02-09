@@ -416,7 +416,7 @@ async function createWelcomeCard({ userName, userTag, threadName, memberCount, i
   ctx.fillText(displayGroupName, centerX, groupY + groupImageSize + 50);
 
   // ✅ Member Count Section
-  const memberY = 560;
+  const memberY = 570;
   const boxWidth = 500;
   const boxHeight = 50;
   const boxX = (width - boxWidth) / 2;
