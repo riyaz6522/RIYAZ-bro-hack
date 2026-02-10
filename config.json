@@ -43,8 +43,8 @@
     "notes": "If enabled, only threads in whiteListThreadIds can use the bot."
   },
   "database": {
-    "type": "mongodb",
-    "uriMongodb": " ",
+    "type": "sqlite",
+    "uriMongodb": "",
     "autoSyncWhenStart": false,
     "autoRefreshThreadInfoFirstTime": true,
     "notes": "Recommended using 'mongodb' or 'sqlite'."
