@@ -1,82 +1,96 @@
-const axios = require("axios");
+const Database = require("better-sqlite3");
+const path = require("path");
 
-// API URL
-const API_URL = "https://balance-bot-api.onrender.com";
+// === DATABASE SETUP ===
+const dbPath = path.join(__dirname, "balance.db");
+const db = new Database(dbPath);
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS balances (
+    userID TEXT PRIMARY KEY,
+    balance INTEGER,
+    lastDaily INTEGER
+  )
+`).run();
 
-// Daily bonus tracker (memory-based)
-if (!global.dailyBonus) global.dailyBonus = {};
-
-// Fetch balance
-async function getBalance(userID) {
-  try {
-    const res = await axios.get(`${API_URL}/api/balance/${userID}`);
-    return res.data.balance || 100;
-  } catch {
-    return 100;
-  }
+// === BALANCE FUNCTIONS ===
+function getBalance(userID) {
+  const row = db.prepare("SELECT balance FROM balances WHERE userID=?").get(userID);
+  if (row) return row.balance || 100;
+  return 100;
 }
 
-// Add balance
-async function addBalance(userID, amount) {
-  try {
-    const res = await axios.post(`${API_URL}/api/balance/add`, { userID, amount });
-    return res.data.success ? res.data.balance : null;
-  } catch {
-    return null;
-  }
-}
-
-// Format currency
-function formatBalance(num) { return num.toLocaleString("en-US") + " $"; }
-
-// Create stylish daily bonus message
-function createMessage(userName, amount, newBalance) {
-  return `🎁 Dᴀɪʟʏ Bᴏɴᴜs 🎁
-
-👤 Pʟᴀʏᴇʀ: ${userName}
-💵 Bᴏɴᴜs: ${formatBalance(amount)}
-💳 Nᴇᴡ Bᴀʟᴀɴᴄᴇ: ${formatBalance(newBalance)}
-
-⏰ Cᴏᴍᴇ ʙᴀᴄᴋ ᴛᴏᴍᴏʀʀᴏᴡ ғᴏʀ ᴍᴏʀᴇ!`;
-}
-
-// Module config
-module.exports.config = {
-  name: "daily",
-  aliases: ["bonus","dbonus"],
-  version: "1.0",
-  author: "MOHAMMAD AKASH",
-  role: 0,
-  shortDescription: "Claim daily bonus",
-  category: "economy"
-};
-
-// On start
-module.exports.onStart = async function({ api, event, usersData }) {
-  const { threadID, senderID } = event;
-  const userName = await usersData.getName(senderID);
-
+function setBalance(userID, balance) {
   const now = Date.now();
-  const lastClaim = global.dailyBonus[senderID] || 0;
-  const oneDay = 24 * 60 * 60 * 1000; // 24 hours
+  db.prepare(`
+    INSERT INTO balances (userID, balance, lastDaily)
+    VALUES (?, ?, ?)
+    ON CONFLICT(userID) DO UPDATE SET balance=excluded.balance
+  `).run(userID, balance, now);
+}
 
-  // Check cooldown
-  if(now - lastClaim < oneDay) {
-    const nextTime = new Date(lastClaim + oneDay);
-    return api.sendMessage(`⏰ Yᴏᴜ ᴀʟʀᴇᴀᴅʏ ᴄʟᴀɪᴍᴇᴅ ʏᴏᴜʀ Dᴀɪʟʏ Bᴏɴᴜs!\nNᴇxᴛ Bᴏɴᴜs: ${nextTime.toLocaleTimeString()}`, threadID);
+function getLastDaily(userID) {
+  const row = db.prepare("SELECT lastDaily FROM balances WHERE userID=?").get(userID);
+  return row?.lastDaily || 0;
+}
+
+function setLastDaily(userID) {
+  const now = Date.now();
+  db.prepare(`
+    INSERT INTO balances (userID, balance, lastDaily)
+    VALUES (?, ?, ?)
+    ON CONFLICT(userID) DO UPDATE SET lastDaily=excluded.lastDaily
+  `).run(userID, getBalance(userID), now);
+}
+
+function formatBalance(num) {
+  if (num >= 1e12) return (num / 1e12).toFixed(2).replace(/\.00$/, '') + "T$";
+  if (num >= 1e9) return (num / 1e9).toFixed(2).replace(/\.00$/, '') + "B$";
+  if (num >= 1e6) return (num / 1e6).toFixed(2).replace(/\.00$/, '') + "M$";
+  if (num >= 1e3) return (num / 1e3).toFixed(2).replace(/\.00$/, '') + "k$";
+  return num + "$";
+}
+
+// === MODULE CONFIG ===
+module.exports = {
+  config: {
+    name: "daily",
+    aliases: ["claim"],
+    version: "1.0",
+    author: "MOHAMMAD AKASH",
+    role: 0,
+    shortDescription: "Claim your daily reward",
+    category: "game",
+    guide: { en: "{p}daily – Claim daily reward" }
+  },
+
+  onStart: async function({ api, event }) {
+    const { senderID, threadID, messageID } = event;
+    const now = Date.now();
+    const lastClaim = getLastDaily(senderID);
+
+    // 24 ঘণ্টা চেক
+    if (now - lastClaim < 24 * 60 * 60 * 1000) {
+      const remaining = 24 * 60 * 60 * 1000 - (now - lastClaim);
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      return api.sendMessage(
+        `⏳ 𝐃ᴀɪʟʏ 𝐑ᴇᴡᴀʀᴅ already claimed!\nNext claim in ${hours}h ${minutes}m.`,
+        threadID, messageID
+      );
+    }
+
+    // দৈনিক রিওয়ার্ড
+    const reward = Math.floor(Math.random() * 501) + 500; // 500$–1000$
+    const oldBalance = getBalance(senderID);
+    const newBalance = oldBalance + reward;
+
+    setBalance(senderID, newBalance);
+    setLastDaily(senderID);
+
+    const output = `🎉 𝐃ᴀɪʟʏ 𝐑ᴇᴡᴀʀᴅ 𝐂ʟᴀɪᴍᴇᴅ!
+💰 𝐘ᴏᴜ 𝐑ᴇᴄᴇɪᴠᴇᴅ: ${formatBalance(reward)}
+🏦 𝐍ᴇᴡ 𝐁ᴀʟᴀɴᴄᴇ: ${formatBalance(newBalance)}`;
+
+    return api.sendMessage(output, threadID, messageID);
   }
-
-  // Random daily bonus between 50$ and 500$
-  const bonusAmount = Math.floor(Math.random() * (500 - 50 + 1) + 50);
-
-  // Update balance
-  const newBalance = await addBalance(senderID, bonusAmount);
-  if(!newBalance) return api.sendMessage("❌ Eʀʀᴏʀ ᴜᴘᴅᴀᴛɪɴɢ Bᴀʟᴀɴᴄᴇ. Tʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.", threadID);
-
-  // Update last claim
-  global.dailyBonus[senderID] = now;
-
-  // Send stylish message
-  const message = createMessage(userName, bonusAmount, newBalance);
-  await api.sendMessage(message, threadID);
 };
