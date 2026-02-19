@@ -1,25 +1,25 @@
 module.exports = {
   config: {
     name: "autoreact",
-    version: "4.4.0",
-    author: "MOHAMMAD AKASH",
+    version: "4.6.0",
+    author: "MOHAMMAD RIYAZ",
     role: 0,
     category: "system",
-    shortDescription: "Auto react (emoji + text)",
-    longDescription: "Stable auto reaction without silent API fail"
+    shortDescription: "Random cat auto react",
+    longDescription: "Reacts with random cat emojis to every message."
   },
 
   onStart: async function () {},
 
   onChat: async function ({ api, event }) {
     try {
-      const { messageID, body, senderID, threadID } = event;
-      if (!messageID || !body) return;
+      const { messageID, senderID, threadID } = event;
+      if (!messageID) return;
 
-      // ❌ নিজের / বটের মেসেজে রিয়েক্ট না
+      // ❌ নিজের বা বটের মেসেজে রিয়েক্ট করবে না
       if (senderID === api.getCurrentUserID()) return;
 
-      // ❌ হালকা cooldown (2.5s)
+      // ❌ Cooldown (2.5s) যাতে ফেসবুক স্প্যাম হিসেবে না ধরে
       global.__autoReactCooldown ??= {};
       if (
         global.__autoReactCooldown[threadID] &&
@@ -28,66 +28,23 @@ module.exports = {
 
       global.__autoReactCooldown[threadID] = Date.now();
 
-      const text = body.toLowerCase();
-      let react = null;
+      // ==========================
+      // আপনার দেওয়া ৪টি ইমোজি লিস্ট
+      // ==========================
+      const catReacts = ["😽", "😾", "😹", "😻"];
+      
+      // এই লিস্ট থেকে রেন্ডমলি একটা সিলেক্ট করবে
+      const randomReact = catReacts[Math.floor(Math.random() * catReacts.length)];
 
-      // ==========================
-      // Emoji Categories
-      // ==========================
-      const categories = [
-        { e: ["😂","🤣","😆","😄","😁"], r: "😆" },
-        { e: ["😭","😢","🥺","💔"], r: "😢" },
-        { e: ["❤️","💖","💘","🥰","😍"], r: "❤️" },
-        { e: ["😡","🤬"], r: "😡" },
-        { e: ["😮","😱","😲"], r: "😮" },
-        { e: ["😎","🔥","💯"], r: "😎" },
-        { e: ["👍","👌","🙏"], r: "👍" },
-        { e: ["🎉","🥳"], r: "🎉" }
-      ];
-
-      // ==========================
-      // Text Triggers
-      // ==========================
-      const texts = [
-        { k: ["haha","lol","moja","xd"], r: "😆" },
-        { k: ["sad","kharap","mon kharap","cry"], r: "😢" },
-        { k: ["love","valobasi","miss"], r: "❤️" },
-        { k: ["rag","angry","rage"], r: "😡" },
-        { k: ["wow","omg"], r: "😮" },
-        { k: ["ok","yes","okay","hmm"], r: "👍" }
-      ];
-
-      // ==========================
-      // Emoji check first
-      // ==========================
-      for (const c of categories) {
-        if (c.e.some(x => text.includes(x))) {
-          react = c.r;
-          break;
-        }
-      }
-
-      // ==========================
-      // Text check
-      // ==========================
-      if (!react) {
-        for (const t of texts) {
-          if (t.k.some(x => text.includes(x))) {
-            react = t.r;
-            break;
-          }
-        }
-      }
-
-      // ❌ কিছু না মিললে রিয়েক্ট না
-      if (!react) return;
-
-      // ⏱ Human-like delay
+      // ⏱ Human-like delay (৮০০ মিলি-সেকেন্ড দেরি করবে)
       await new Promise(r => setTimeout(r, 800));
 
-      // ✅ FINAL FIX — NO callback, NO true
-      api.setMessageReaction(react, messageID);
+      // ✅ মেসেজে রিয়েক্ট পাঠানো
+      api.setMessageReaction(randomReact, messageID, (err) => {}, true);
 
-    } catch (e) {}
+    } catch (e) {
+      // কনসোলে এরর চেক করতে চাইলে নিচের লাইনটি ব্যবহার করতে পারেন
+      // console.error(e);
+    }
   }
 };
