@@ -4,7 +4,7 @@ module.exports = {
 		version: "1.3",
 		author: "NTKhang",
 		countDown: 5,
-		role: 1,
+		role: 0,
 		description: {
 			vi: "Kick thành viên khỏi box chat",
 			en: "Kick member out of chat box"
