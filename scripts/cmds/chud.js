@@ -4,8 +4,8 @@ module.exports = {
     aliases: ["chud"],
     version: "1.0",
     author: "nexo_here",
-    role: 2,
-    category: "admin",
+    role: 0,
+    category: "chud",
     guide: {
       vi: "Not Available",
       en: "chud @(mention)"
