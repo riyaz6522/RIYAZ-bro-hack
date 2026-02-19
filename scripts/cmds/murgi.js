@@ -67,7 +67,7 @@ module.exports = {
     message.reply("✅ Murgi mode started!");
 
     let count = 0;
-    const limit = 50; // কয়টা মেসেজ দিবে তার লিমিট
+    const limit = 90; // কয়টা মেসেজ দিবে তার লিমিট
 
     while (activeFun.get(event.threadID) && count < limit) {
       for (const msg of messages) {
