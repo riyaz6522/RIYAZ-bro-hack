@@ -1,13 +1,12 @@
 module.exports = {
   config: {
     name: "autoreact",
-    version: "7.0.0",
-    author: "MOHAMMAD RIYAZ",
+    version: "8.0.0",
+    author: "MOHAMMAD AKASH",
     countDown: 0,
     role: 0,
     category: "system",
-    shortDescription: "Admin vs Member auto react",
-    longDescription: "Reacts differently to admins and members."
+    shortDescription: "Admin vs Member auto react (Optimized)"
   },
 
   onStart: async function () {},
@@ -16,36 +15,34 @@ module.exports = {
     try {
       const { messageID, senderID, threadID, type } = event;
       if (type !== "message" && type !== "message_reply") return;
-
-      // নিজের মেসেজে রিয়েক্ট করবে না
       if (senderID == api.getCurrentUserID()) return;
 
-      // গ্রুপের তথ্য আনা (অ্যাডমিন চেক করার জন্য)
-      const threadInfo = await api.getThreadInfo(threadID);
-      const adminIDs = threadInfo.adminIDs.map(admin => admin.id);
+      // সরাসরি থ্রেড ইনফো নিয়ে অ্যাডমিন চেক
+      api.getThreadInfo(threadID, (err, info) => {
+        if (err) return;
 
-      let reactList;
+        // অ্যাডমিনদের আইডি লিস্ট বের করা
+        const adminIDs = info.adminIDs.map(i => i.id);
+        
+        let reactList;
 
-      // ১. চেক: মেসেজ দাতা কি অ্যাডমিন?
-      if (adminIDs.includes(senderID)) {
-        // অ্যাডমিনদের জন্য রিয়েক্ট (🥰, 😻, 😽, 🫶)
-        reactList = ["🥰", "😻", "😽", "🫶"];
-      } else {
-        // সাধারণ মেম্বারদের জন্য রিয়েক্ট (😹, 🐸, 🌚, 👿, 😂, 🤡)
-        reactList = ["😹", "🐸", "🌚", "👿", "😂", "🤡"];
-      }
+        // ✅ যদি মেসেজ দাতা অ্যাডমিন হয়
+        if (adminIDs.includes(senderID)) {
+          reactList = ["🥰", "😻", "😽", "🫶"];
+        } 
+        // ❌ যদি সাধারণ মেম্বার হয়
+        else {
+          reactList = ["😹", "🐸", "🌚", "👿", "😂", "🤡"];
+        }
 
-      // রেন্ডমলি একটি রিয়েক্ট সিলেক্ট করা
-      const randomReact = reactList[Math.floor(Math.random() * reactList.length)];
+        const randomReact = reactList[Math.floor(Math.random() * reactList.length)];
 
-      // রিয়েক্ট পাঠানো
-      api.setMessageReaction(randomReact, messageID, (err) => {
-        if (err) console.error("Reaction Error:", err);
-      }, true);
+        // রিয়েক্ট পাঠানো
+        api.setMessageReaction(randomReact, messageID, (err) => {}, true);
+      });
 
     } catch (e) {
-      // ব্যক্তিগত চ্যাটে (Inbox) threadInfo তে এরর আসতে পারে, তাই ট্রাই-ক্যাচ রাখা হয়েছে
-      console.log("Autoreact Error:", e.message);
+      console.error(e);
     }
   }
 };
