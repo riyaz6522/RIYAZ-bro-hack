@@ -1,48 +1,51 @@
 module.exports = {
   config: {
     name: "autoreact",
-    version: "8.0.0",
+    version: "9.0.0",
     author: "MOHAMMAD AKASH",
     countDown: 0,
     role: 0,
-    category: "system",
-    shortDescription: "Admin vs Member auto react (Optimized)"
+    category: "system"
   },
 
   onStart: async function () {},
 
   onChat: async function ({ api, event }) {
+    const { threadID, messageID, senderID, type } = event;
+
+    // মেসেজ না হলে বা নিজের মেসেজ হলে বাদ
+    if (type !== "message" && type !== "message_reply") return;
+    if (senderID == api.getCurrentUserID()) return;
+
     try {
-      const { messageID, senderID, threadID, type } = event;
-      if (type !== "message" && type !== "message_reply") return;
-      if (senderID == api.getCurrentUserID()) return;
-
-      // সরাসরি থ্রেড ইনফো নিয়ে অ্যাডমিন চেক
-      api.getThreadInfo(threadID, (err, info) => {
-        if (err) return;
-
-        // অ্যাডমিনদের আইডি লিস্ট বের করা
-        const adminIDs = info.adminIDs.map(i => i.id);
-        
-        let reactList;
-
-        // ✅ যদি মেসেজ দাতা অ্যাডমিন হয়
-        if (adminIDs.includes(senderID)) {
-          reactList = ["🥰", "😻", "😽", "🫶", "🤍", "💥", "👍"];
-        } 
-        // ❌ যদি সাধারণ মেম্বার হয়
-        else {
-          reactList = ["😹", "🐸", "🌚", "👿", "😂", "🤡", "☠️"];
+      // থ্রেড ডাটা কালেকশন
+      api.getThreadInfo(threadID, (err, threadInfo) => {
+        if (err) {
+          // ইনবক্স বা এরর হলে সাধারণ রিয়েক্ট দিবে
+          const normalReacts = ["😹", "🐸", "🌚", "👿", "😂", "🤡"];
+          const react = normalReacts[Math.floor(Math.random() * normalReacts.length)];
+          return api.setMessageReaction(react, messageID, () => {}, true);
         }
 
-        const randomReact = reactList[Math.floor(Math.random() * reactList.length)];
+        // অ্যাডমিন আইডি চেক
+        const adminIDs = threadInfo.adminIDs.map(i => i.id);
+        const isAdmin = adminIDs.includes(senderID);
 
-        // রিয়েক্ট পাঠানো
-        api.setMessageReaction(randomReact, messageID, (err) => {}, true);
+        // ইমোজি লিস্ট সেট করা
+        const adminReacts = ["🥰", "😻", "😽", "🫶"];
+        const memberReacts = ["😹", "🐸", "🌚", "👿", "😂", "🤡"];
+
+        const selectedReact = isAdmin 
+          ? adminReacts[Math.floor(Math.random() * adminReacts.length)] 
+          : memberReacts[Math.floor(Math.random() * memberReacts.length)];
+
+        // ফাইনাল রিয়েক্ট
+        api.setMessageReaction(selectedReact, messageID, (err) => {
+          if (err) console.log(err);
+        }, true);
       });
-
     } catch (e) {
-      console.error(e);
+      console.log("Error:", e);
     }
   }
 };
