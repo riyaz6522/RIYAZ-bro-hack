@@ -32,7 +32,7 @@ module.exports = {
         const isAdmin = adminIDs.includes(senderID);
 
         // ইমোজি লিস্ট সেট করা
-        const adminReacts = ["🥰", "😻", "😽", "🫶"];
+        const adminReacts = ["🥰", "😻", "😽", "🫶", "💥"];
         const memberReacts = ["😹", "🐸", "🌚", "👿", "😂", "🤡"];
 
         const selectedReact = isAdmin 
