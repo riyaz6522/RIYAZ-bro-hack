@@ -1,51 +1,41 @@
 module.exports = {
   config: {
     name: "autoreact",
-    version: "9.0.0",
+    version: "6.0.0",
     author: "MOHAMMAD AKASH",
-    countDown: 0,
+    countDown: 0, // কোনো দেরি হবে না
     role: 0,
-    category: "system"
+    category: "system",
+    shortDescription: "Cat reaction to every message"
   },
 
   onStart: async function () {},
 
   onChat: async function ({ api, event }) {
-    const { threadID, messageID, senderID, type } = event;
+    // ১. চেক করবে এটা কি কোনো মেসেজ কি না (সব ধরনের মেসেজ টাইপ এলাউড)
+    if (event.body !== undefined || event.type === "message" || event.type === "message_reply") {
+      
+      const { messageID, senderID } = event;
 
-    // মেসেজ না হলে বা নিজের মেসেজ হলে বাদ
-    if (type !== "message" && type !== "message_reply") return;
-    if (senderID == api.getCurrentUserID()) return;
+      // ২. বট নিজের মেসেজে রিয়েক্ট করবে না (লুপ ঠেকানোর জন্য)
+      if (senderID == api.getCurrentUserID()) return;
 
-    try {
-      // থ্রেড ডাটা কালেকশন
-      api.getThreadInfo(threadID, (err, threadInfo) => {
-        if (err) {
-          // ইনবক্স বা এরর হলে সাধারণ রিয়েক্ট দিবে
-          const normalReacts = ["😹", "🐸", "🌚", "👿", "😂", "🤡"];
-          const react = normalReacts[Math.floor(Math.random() * normalReacts.length)];
-          return api.setMessageReaction(react, messageID, () => {}, true);
-        }
+      try {
+        const catReacts = ["😽", "😾", "😹", "😻", "😿", "🙀", "🤡", "👅", "☠️", "🫦", "💋", "🤮", "🫠", "🥱", "🫩"];
+        const randomReact = catReacts[Math.floor(Math.random() * catReacts.length)];
 
-        // অ্যাডমিন আইডি চেক
-        const adminIDs = threadInfo.adminIDs.map(i => i.id);
-        const isAdmin = adminIDs.includes(senderID);
-
-        // ইমোজি লিস্ট সেট করা
-        const adminReacts = ["🥰", "😻", "😽", "🫶", "💥"];
-        const memberReacts = ["😹", "🐸", "🌚", "👿", "😂", "🤡"];
-
-        const selectedReact = isAdmin 
-          ? adminReacts[Math.floor(Math.random() * adminReacts.length)] 
-          : memberReacts[Math.floor(Math.random() * memberReacts.length)];
-
-        // ফাইনাল রিয়েক্ট
-        api.setMessageReaction(selectedReact, messageID, (err) => {
-          if (err) console.log(err);
+        // ৩. সরাসরি রিয়েক্ট কমান্ড
+        api.setMessageReaction(randomReact, messageID, (err) => {
+          if (err) {
+            // যদি কোনো এরর আসে কনসোলে দেখাবে
+            console.log("React Error: " + err.errorSummary);
+          }
         }, true);
-      });
-    } catch (e) {
-      console.log("Error:", e);
+
+      } catch (e) {
+        // কোনো এরর হলে সেটা কনসোলে প্রিন্ট হবে
+        console.log("Autoreact Error: ", e);
+      }
     }
   }
 };
