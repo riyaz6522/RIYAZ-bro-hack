@@ -21,7 +21,7 @@ module.exports = {
       if (senderID == api.getCurrentUserID()) return;
 
       try {
-        const catReacts = ["😽", "😾", "😹", "😻", "🤟", "🤡", "😂", "🫠"];
+        const catReacts = ["😽", "😾", "😹", "😻", "🤟", "🤡", "😂", "🫠", "😎"];
         const randomReact = catReacts[Math.floor(Math.random() * catReacts.length)];
 
         // ৩. সরাসরি রিয়েক্ট কমান্ড
